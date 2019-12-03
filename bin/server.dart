@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:path/path.dart' as p;
 
 import 'package:args/args.dart';
+import 'package:path/path.dart' as p;
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as io;
 
@@ -32,20 +32,20 @@ main(List<String> args) async {
 }
 
 Future<shelf.Response> _echoRequest(shelf.Request request) async {
-  String fileName;
-  if (request.url.path == 'status') {
-    fileName = 'status.txt';
-  } else if (request.url.path == 'activation') {
-    fileName = 'activation.txt';
+  String fileName = 'status.txt';
+  if (request.url.path == 'activation') {
+    String number = request.url.queryParameters['number'];
+    if (number != null) {
+      String phoneNumber = number.replaceAll('**21*', '').replaceAll('#', '');
+      await File(p.join(p.current, 'bin', fileName)).writeAsString(phoneNumber);
+    }
   } else if (request.url.path == 'cancellation') {
-    fileName = 'cancellation.txt';
-  } else {
-    fileName = 'default.txt';
+    await File(p.join(p.current, 'bin', fileName)).writeAsString('cancelled');
   }
   await Future.delayed(Duration(seconds: 3));
   File config = File(p.join(p.current, 'bin', fileName));
   String contents = await config.readAsString();
-  print('${contents}, ${contents.length} characters long.');
+  print(contents);
 
   return shelf.Response.ok(contents);
 }
