@@ -33,17 +33,22 @@ main(List<String> args) async {
 
 Future<shelf.Response> _echoRequest(shelf.Request request) async {
   String fileName = 'status.txt';
+  String filePath = p.join(p.dirname(Platform.script.path), fileName);
   if (request.url.path == 'activation') {
     String number = request.url.queryParameters['number'];
     if (number != null) {
       String phoneNumber = number.replaceAll('**21*', '').replaceAll('#', '');
-      await File(p.join(p.current, 'bin', fileName)).writeAsString(phoneNumber);
+      await File(filePath).writeAsString("""
+Activation success
+${phoneNumber}
+Thank you
+""");
     }
   } else if (request.url.path == 'cancellation') {
-    await File(p.join(p.current, 'bin', fileName)).writeAsString('cancelled');
+    await File(filePath).writeAsString('cancelled');
   }
   await Future.delayed(Duration(seconds: 3));
-  File config = File(p.join(p.current, 'bin', fileName));
+  File config = File(filePath);
   String contents = await config.readAsString();
   print(contents);
 
