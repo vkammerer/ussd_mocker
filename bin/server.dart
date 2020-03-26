@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
@@ -31,26 +32,43 @@ main(List<String> args) async {
   print('Serving at http://${server.address.host}:${server.port}');
 }
 
+String dbFileName = 'status.json';
+String dbFilePath = p.join(p.dirname(Platform.script.path), dbFileName);
+
+void saveSimStatus(String simSerialNumber, String status) async {
+  File config = File(dbFilePath);
+  String contents = await config.readAsString();
+  var dict = json.decode(contents);
+  dict[simSerialNumber] = status;
+  await File(dbFilePath).writeAsString(json.encode(dict));
+}
+
+Future<String> readSimStatus(String simSerialNumber) async {
+  File config = File(dbFilePath);
+  String contents = await config.readAsString();
+  var dict = json.decode(contents);
+  return dict[simSerialNumber];
+}
+
 Future<shelf.Response> _echoRequest(shelf.Request request) async {
-  String fileName = 'status.txt';
-  String filePath = p.join(p.dirname(Platform.script.path), fileName);
+  String serial = request.url.queryParameters['serial'];
   if (request.url.path == 'activation') {
     String number = request.url.queryParameters['number'];
     if (number != null) {
-      String phoneNumber = number.replaceAll('**21*', '').replaceAll('#', '');
-      await File(filePath).writeAsString("""
-Activation success
-${phoneNumber}
-Thank you
-""");
+      String phoneNumber =
+          number.replaceAll('*21*', '').replaceAll('*', '').replaceAll('#', '');
+      print(serial);
+      await saveSimStatus(
+          serial, "\nActivation success\n${phoneNumber}\nThank you");
     }
   } else if (request.url.path == 'cancellation') {
-    await File(filePath).writeAsString('cancelled');
+    await saveSimStatus(serial, "cancelled");
   }
   await Future.delayed(Duration(seconds: 3));
-  File config = File(filePath);
-  String contents = await config.readAsString();
-  print(contents);
-
+  String contents = await readSimStatus(serial);
+  if (contents == null) {
+    await saveSimStatus(serial, "status");
+    contents = "status";
+  }
   return shelf.Response.ok(contents);
 }
